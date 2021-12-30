@@ -24,6 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include "ringbuffer.h"
 /* USER CODE END Includes */
 
@@ -45,7 +46,7 @@
 
 /* USER CODE BEGIN PV */
 RingBufferU8 rb_u1, rb_u2;
-uint8_t rb_u1_s[16], rb_u2_s[16];
+uint8_t rb_u1_s[128], rb_u2_s[128];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,26 +59,46 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void  USART1_TX_Callback(void)
 {
-	if (RingBufferU8_available(&rb_u2))
+	if (RingBufferU8_available(&rb_u2)) {
 		LL_USART_TransmitData8(USART1, RingBufferU8_readByte(&rb_u2));
+		LL_USART_EnableIT_TXE(USART1);
+	} else
+		LL_USART_DisableIT_TXE(USART1);
 }
 
 void  USART2_TX_Callback(void)
 {
-	if (RingBufferU8_available(&rb_u1))
-		LL_USART_TransmitData8(USART2, RingBufferU8_readByte(&rb_u1));
+//	if (RingBufferU8_available(&rb_u1))
+//		LL_USART_TransmitData8(USART2, RingBufferU8_readByte(&rb_u1));
+//	    LL_USART_EnableIT_TXE(USART2);
+}
+
+void  USART3_TX_Callback(void)
+{
+	if (RingBufferU8_available(&rb_u1)) {
+		LL_USART_TransmitData8(USART3, RingBufferU8_readByte(&rb_u1));
+		LL_USART_EnableIT_TXE(USART3);
+	} else
+		LL_USART_DisableIT_TXE(USART3);
 }
 
 void  USART1_RX_Callback(void)
 {
 	RingBufferU8_writeByte(&rb_u1, LL_USART_ReceiveData8(USART1));
-	if (LL_USART_IsActiveFlag_TXE(USART2))
-		USART2_TX_Callback();
+	if (LL_USART_IsActiveFlag_TXE(USART3))
+		USART3_TX_Callback();
 }
 
 void  USART2_RX_Callback(void)
 {
-	RingBufferU8_writeByte(&rb_u2, LL_USART_ReceiveData8(USART2));
+	RingBufferU8_writeByte(&rb_u1, LL_USART_ReceiveData8(USART2));
+	if (LL_USART_IsActiveFlag_TXE(USART3))
+		USART3_TX_Callback();
+}
+
+void  USART3_RX_Callback(void)
+{
+	RingBufferU8_writeByte(&rb_u2, LL_USART_ReceiveData8(USART3));
 	if (LL_USART_IsActiveFlag_TXE(USART1))
 		USART1_TX_Callback();
 }
@@ -128,34 +149,87 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  //Включаем питание модема
-  LL_GPIO_SetOutputPin(MODEM_PWR_GPIO_Port, MODEM_PWR_Pin);
-
-  //Включаем модем
-  LL_GPIO_ResetOutputPin(MODEM_KEY_GPIO_Port, MODEM_KEY_Pin);
-  LL_mDelay(1000);
-  LL_GPIO_SetOutputPin(MODEM_KEY_GPIO_Port, MODEM_KEY_Pin);
-
-
   RingBufferU8_init(&rb_u1, rb_u1_s, sizeof(rb_u1_s));
   RingBufferU8_init(&rb_u2, rb_u2_s, sizeof(rb_u2_s));
 
   LL_USART_EnableIT_RXNE(USART1);
   LL_USART_EnableIT_RXNE(USART2);
-  LL_USART_EnableIT_TXE(USART1);
-  LL_USART_EnableIT_TXE(USART2);
+  LL_USART_EnableIT_RXNE(USART3);
 
-  RingBufferU8_write(&rb_u1, (const uint8_t*)"Hello", 5);
-  USART2_TX_Callback();
+  RingBufferU8_write(&rb_u1, (const uint8_t*)"\r\n\r\nHello\r\n", 5+6);
+  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+
+  if (LL_RCC_IsActiveFlag_LPWRRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"LPWRRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  if (LL_RCC_IsActiveFlag_IWDGRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"IWDGRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  if (LL_RCC_IsActiveFlag_PINRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"PINRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  if (LL_RCC_IsActiveFlag_PORRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"PORRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  if (LL_RCC_IsActiveFlag_SFTRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"SFTRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  if (LL_RCC_IsActiveFlag_WWDGRST()) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"WWDGRST\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+  }
+
+  LL_RCC_ClearResetFlags();
+
+  //Включаем питание модема
+  LL_GPIO_SetOutputPin(MODEM_PWR_GPIO_Port, MODEM_PWR_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  bool modem_ready = false;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    //Включаем модем
+	if (!LL_GPIO_IsInputPinSet(MODEM_STATUS_GPIO_Port, MODEM_STATUS_Pin) || !LL_GPIO_IsInputPinSet(MODEM_STATUS_2_GPIO_Port, MODEM_STATUS_2_Pin)) {
+	  RingBufferU8_write(&rb_u1, (const uint8_t*)"PWR_KEY\r\n", 9);
+	  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+
+		  LL_GPIO_ResetOutputPin(MODEM_KEY_GPIO_Port, MODEM_KEY_Pin);
+  //  	  while (!LL_GPIO_IsInputPinSet(MODEM_STATUS_GPIO_Port, MODEM_STATUS_Pin) && LL_GPIO_IsInputPinSet(MODEM_STATUS_2_GPIO_Port, MODEM_STATUS_2_Pin)) {
+			  LL_mDelay(1000);
+  //  	  }
+		  LL_GPIO_SetOutputPin(MODEM_KEY_GPIO_Port, MODEM_KEY_Pin);
+
+		  RingBufferU8_write(&rb_u1, (const uint8_t*)"STATUS 1\r\n", 10);
+		  if (LL_USART_IsActiveFlag_TXE(USART3)) USART3_TX_Callback();
+		  LL_mDelay(500);
+
+		  modem_ready = false;
+	} else
+		LL_mDelay(100);
+
+	if (!modem_ready) {
+		for (uint8_t i=0; i<3; i++) {
+			RingBufferU8_write(&rb_u2, (const uint8_t*)"AT\r\n", 4);
+			if (LL_USART_IsActiveFlag_TXE(USART1)) USART1_TX_Callback();
+			LL_mDelay(500);
+		}
+		modem_ready = true;
+	}
   }
   /* USER CODE END 3 */
 }
@@ -236,4 +310,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

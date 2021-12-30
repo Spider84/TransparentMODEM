@@ -74,6 +74,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define MODEM_STATUS_Pin LL_GPIO_PIN_12
 #define MODEM_STATUS_GPIO_Port GPIOB
+#define MODEM_STATUS_2_Pin LL_GPIO_PIN_13
+#define MODEM_STATUS_2_GPIO_Port GPIOB
 #define MODEM_KEY_Pin LL_GPIO_PIN_14
 #define MODEM_KEY_GPIO_Port GPIOB
 #define MODEM_PWR_Pin LL_GPIO_PIN_8
@@ -99,5 +101,3 @@ void Error_Handler(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
